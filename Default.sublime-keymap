@@ -17,6 +17,10 @@
     "command": "gtags_show_symbols", 
     "keys": ["ctrl+t", "ctrl+s"]
   },
+  {
+    "command": "gtags_show_open_files_symbols", 
+    "keys": ["ctrl+t", "ctrl+d"]
+  },
   { // override current default
     "keys": ["ctrl+t"],
     "command": "transpose",

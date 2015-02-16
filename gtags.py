@@ -116,6 +116,13 @@ class TagFile(object):
             print(stderr)
         return success
 
+    def open_files_symbols(self):
+        files=" ".join(['"'+x.file_name()+'"' for x in sublime.active_window().views()])
+        out=self.subprocess.stdout('global -f %s' % files)
+        if int(sublime.version()) >= 3000:
+            out = out.decode("utf-8")
+        return [line.split(" ",2)[0] for line in out.splitlines()]
+
 
 class GTagsTest(unittest.TestCase):
     def test_start_with(self):
