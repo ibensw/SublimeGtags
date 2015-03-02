@@ -117,12 +117,59 @@ class TagFile(object):
         return success
 
     def open_files_symbols(self):
-        files=" ".join(['"'+x.file_name()+'"' for x in sublime.active_window().views()])
-        out=self.subprocess.stdout('global -f %s' % files)
+        files=" ".join(['"'+x.file_name()+'"' for x in sublime.active_window().views() if os.path.isfile(x.file_name())])
+
+        out=self.subprocess.stdout('global -q -f %s' % files)
         if int(sublime.version()) >= 3000:
             out = out.decode("utf-8")
         return [line.split(" ",2)[0] for line in out.splitlines()]
 
+    def _find_includes(self, filename):
+        includes = set([])
+        if not os.path.isfile(filename):
+            return includes
+        with open(filename, 'r') as fp:
+            for line in fp:
+                line = line.lstrip();
+                if line.startswith("#include"):
+                    quoted = re.search('^\s*#include\s+"(.*)"', line)
+                    if quoted:
+                        includes.add(quoted.group(1));
+        return includes
+
+    def _makefullpath(self, basepaths, filename):
+        for path in basepaths:
+            if os.path.isfile(path+"/"+filename):
+                return path+"/"+filename
+        return None
+
+    def _find_all_includes(self, basepaths, filename):
+        todo=set([filename])
+        done=set([])
+
+        while len(todo) > 0:
+            progress = todo.pop()
+            done.add(progress)
+            includes = self._find_includes(progress)
+            for i in includes:
+                j=self._makefullpath(basepaths,i)
+                if j and j not in todo and j not in done:
+                    todo.add(j)
+        return done
+
+    def current_include_path(self, filename):
+        basepaths=[]
+        if not sublime.active_window().project_data():
+            basepaths.append(os.path.dirname(filename))
+        else:
+            projectpath = os.path.dirname(sublime.active_window().project_file_name())
+            for folder in sublime.active_window().project_data()['folders']:
+                basepaths.append(os.path.normpath(os.path.join(projectpath, folder['path'])))
+        files = self._find_all_includes(basepaths, filename)
+        out=self.subprocess.stdout("global -f '%s'" % "' '".join(files))
+        if int(sublime.version()) >= 3000:
+            out = out.decode("utf-8")
+        return [line.split(" ",2)[0] for line in out.splitlines()]
 
 class GTagsTest(unittest.TestCase):
     def test_start_with(self):

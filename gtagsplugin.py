@@ -202,6 +202,40 @@ class GtagsShowOpenFilesSymbols(sublime_plugin.TextCommand):
                 'Symbols have successfully obtained',
                 'No symbols found')
 
+class ShowCurrentFileSymbolsThread(threading.Thread):
+    def __init__(self, view, tags, root, filename):
+        threading.Thread.__init__(self)
+        self.view = view
+        self.tags = tags
+        self.root = root
+        self.filename = filename
+
+    def run(self):
+        symbols = self.tags.current_include_path(self.filename)
+        self.success = len(symbols) > 0
+        if not self.success:
+            return
+
+        def on_select(index):
+            if index != -1:
+                definitions = self.tags.match(symbols[index])
+                gtags_jump_keyword(self.view, definitions, self.root)
+
+        sublime.set_timeout(
+            lambda: self.view.window().show_quick_panel(symbols, on_select), 0)
+
+
+class GtagsShowCurrentFileSymbols(sublime_plugin.TextCommand):
+    def run(self, edit):
+        @run_on_cwd()
+        def and_then(view, tags, root):
+            thread = ShowCurrentFileSymbolsThread(view, tags, root, self.view.file_name())
+            thread.start()
+            ThreadProgress(thread,
+                'Getting symbols on %s' % root,
+                'Symbols have successfully obtained',
+                'No symbols found')
+
 
 class GtagsNavigateToDefinition(sublime_plugin.TextCommand):
     def run(self, edit):

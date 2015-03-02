@@ -28,6 +28,9 @@
                 "command": "gtags_show_open_files_symbols"
               },
               {
+                "command": "gtags_show_current_file_symbols"
+              },
+              {
                 "command": "gtags_rebuild_tags"
               }
             ]
